@@ -24,14 +24,18 @@ void job(const std::string& greeting, const std::string& msg)
 
 int main(int argc, char** argv)
 {
-    auto dispatch = std::make_unique<Dispatch>();
+    try {
+        auto dispatch = std::make_unique<Dispatch>();
 
-    auto greeting = "Hello!";
-    auto message = "I have a message for you from the people of Earth.";
+        auto greeting = "Hello!";
+        auto message = "I have a message for you from the people of Earth.";
 
-    for (int i = 0; i < 10; i++) {
-        dispatch->addJob(job, greeting, message);
+        for (int i = 0; i < 10; i++) {
+            dispatch->addJob(job, greeting, message);
+        } 
+
+        return 0;
+    } catch (PoolException &p) {
+        return -1;
     }
-
-    return 0;
 }

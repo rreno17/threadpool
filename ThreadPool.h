@@ -2,6 +2,7 @@
 
 #include <condition_variable>
 #include <functional>
+#include <exception>
 #include <utility>
 #include <vector>
 #include <thread>
@@ -41,6 +42,24 @@ private:
 
 };
 
+class PoolException : public std::exception {
+    /*
+     *
+     * Propagates a std::system_error from std::thread instead
+     * of making users of the ThreadPool understand that threads
+     * can throw system_error.
+     *
+     */
+public:
+     explicit PoolException(std::system_error& e);
+     const char* what() const throw();
+     const std::error_code& code() const noexcept;
+
+private:
+     std::error_code m_code;
+     const char* m_what;
+};
+
 
 class Dispatch {
     /*
@@ -53,6 +72,7 @@ class Dispatch {
      */
 public:
     Dispatch();
+    Dispatch(size_t numthreads);
     ~Dispatch();
 
     template<typename T, typename... A>
@@ -68,6 +88,7 @@ protected:
     int                 poolState;
 
 private:
+    void initPool();
     ThreadPool          m_pool;
     size_t              m_numThreads;
 };

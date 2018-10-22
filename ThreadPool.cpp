@@ -1,5 +1,7 @@
 #include <condition_variable>
+#include <system_error>
 #include <functional>
+#include <exception>
 #include <iostream>
 #include <utility>
 #include <vector>
@@ -69,19 +71,53 @@ Worker::operator() ()
     }
 }
 
+PoolException::PoolException(std::system_error& e) : m_code(e.code()), m_what(e.what())
+{
+}
+
+const char* 
+PoolException::what() const throw()
+{
+    std::cerr << "Thread Pool Exception\nCode: " << m_code << "\nError: " << m_what << std::endl;
+    return m_what;
+}
+
+const std::error_code& 
+PoolException::code() const noexcept
+{
+    return m_code;
+}
+
 
 Dispatch::Dispatch()
-         : m_pool(),
-           m_numThreads(std::thread::hardware_concurrency()),
-           jobQueue(),
-           poolState(RUNNING)
+         : m_numThreads(std::thread::hardware_concurrency())
 {
-    m_pool.reserve(m_numThreads);
+   initPool();
+}
 
-    for (size_t i = 0; i < m_numThreads; i++) {
-        m_pool.emplace_back(std::thread(Worker(*this)));
+Dispatch::Dispatch(size_t numthreads)
+         : m_numThreads(numthreads)
+{
+    initPool();
+}
+
+
+
+void
+Dispatch::initPool()
+{
+    poolState = RUNNING;
+    m_pool.reserve(m_numThreads);
+    
+    try {
+        for (size_t i = 0; i < m_numThreads; i++) {
+            m_pool.emplace_back(std::thread(Worker(*this)));
+        }
+    } catch (std::system_error& e) {
+        throw PoolException(e);
     }
 }
+
 
 
 Dispatch::~Dispatch()
